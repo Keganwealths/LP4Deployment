@@ -10,16 +10,22 @@ with open('preprocessed_data.pkl', 'rb') as f:
 with open('model.pkl', 'rb') as f:
     model = pickle.load(f)
 
-# Streamlit app
-st.title('Ecuador Time Series Prediction')
+# Define the columns you want to include in the input (excluding 'sales')
+input_columns = [
+    'store_nbr', 'family', 'onpromotion',
+    'price', 'city', 'state', 'type_x', 'cluster', 'type_y', 'locale', 'transferred'
+]
 
-# Input fields for the columns
+# Streamlit app
+st.title('Ecuador Time Series Sales Prediction')
+
+# Input fields for the selected columns
 user_input = {}
 
-for col in preprocessed_data.columns:
+for col in input_columns:
     if col in ['store_nbr', 'onpromotion', 'cluster']:
         user_input[col] = st.number_input(f'Enter {col}', value=0)
-    elif col in ['sales', 'price']:
+    elif col in ['price']:
         user_input[col] = st.number_input(f'Enter {col}', value=0.0)
     else:
         user_input[col] = st.text_input(f'Enter {col}')
@@ -27,17 +33,27 @@ for col in preprocessed_data.columns:
 # Convert user input to a DataFrame
 user_input_df = pd.DataFrame([user_input])
 
+# Load the preprocessor object (you should replace 'preprocessor.pkl' with the actual filename)
+with open('preprocessor.pkl', 'rb') as f:
+    preprocessor = pickle.load(f)
+
+# Function to preprocess user input data
+def preprocess_user_input(user_input_df, preprocessor):
+    # Apply the same preprocessing transformations as the original data
+    user_preprocessed_data = preprocessor.transform(user_input_df)
+    return user_preprocessed_data
+
+# Preprocess the user input data using the same preprocessing as the original data
+user_preprocessed_data = preprocess_user_input(user_input_df, preprocessor)
+
 # Make predictions using the pre-trained model
 if st.button('Predict'):
     try:
-        # Ensure the column order matches the model's expectations
-        user_input_df = user_input_df[preprocessed_data.columns]
+        # Predict sales using the loaded model
+        predicted_sales = model.predict(user_preprocessed_data)
         
-        # Predict using the loaded model
-        prediction = model.predict(user_input_df)
-        
-        # Display the prediction
-        st.subheader('Prediction')
-        st.write(f'The predicted value is: {prediction[0]}')
+        # Display the predicted sales
+        st.subheader('Predicted Sales')
+        st.write(f'The predicted sales value is: {predicted_sales[0]}')
     except Exception as e:
         st.error(f"Error during prediction: {e}")
