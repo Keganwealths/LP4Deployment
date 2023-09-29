@@ -6,10 +6,6 @@ import pickle
 with open('preprocessed_data.pkl', 'rb') as f:
     preprocessed_data, all_feature_names = pickle.load(f)
 
-# Load the preprocessing transformers
-with open('preprocessing_transformers.pkl', 'rb') as f:
-    preprocessing_transformers = pickle.load(f)
-
 with open('model.pkl', 'rb') as f:
     model = pickle.load(f)
 
@@ -33,26 +29,21 @@ for col in input_columns:
     else:
         user_input[col] = st.text_input(f'Enter {col}')
 
-# Create a DataFrame with user input
-user_input_df = pd.DataFrame([user_input])
+# Select only the relevant columns from all_feature_names
+selected_feature_names = [col for col in all_feature_names if col in input_columns]
 
-# Remove the 'sales' column from user input (if it's present)
-if 'sales' in user_input_df.columns:
-    user_input_df = user_input_df.drop(columns=['sales'])
+# Convert user input to a DataFrame with selected columns
+user_input_df = pd.DataFrame([user_input])[selected_feature_names]
 
-# Remove the 'sales' column from all_feature_names
-if 'sales' in all_feature_names:
-    all_feature_names.remove('sales')
-
-# Apply the same preprocessing transformations to user input data
-user_input_preprocessed = preprocessing_transformers.transform(user_input_df)
-
-# Make predictions using the loaded model
+# Make predictions using the pre-trained model
 if st.button('Predict'):
     try:
+        # Ensure that user_input_df is in the correct format (2D array)
+        user_input_array = user_input_df.values
+        
         # Predict sales using the loaded model
-        predicted_sales = model.predict(user_input_preprocessed)
-
+        predicted_sales = model.predict(user_input_array)
+        
         # Display the predicted sales
         st.subheader('Predicted Sales')
         st.write(f'The predicted sales value is: {predicted_sales[0]}')
