@@ -1,11 +1,14 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import pickle
 
 # Load the preprocessed data and model
 with open('preprocessed_data.pkl', 'rb') as f:
     preprocessed_data, all_feature_names = pickle.load(f)
+
+# Load the preprocessing transformers
+with open('preprocessing_transformers.pkl', 'rb') as f:
+    preprocessing_transformers = pickle.load(f)
 
 with open('model.pkl', 'rb') as f:
     model = pickle.load(f)
@@ -30,28 +33,26 @@ for col in input_columns:
     else:
         user_input[col] = st.text_input(f'Enter {col}')
 
-# Convert user input to a DataFrame
+# Create a DataFrame with user input
 user_input_df = pd.DataFrame([user_input])
 
-# Load the preprocessor object (you should replace 'preprocessor.pkl' with the actual filename)
-with open('preprocessor.pkl', 'rb') as f:
-    preprocessor = pickle.load(f)
+# Remove the 'sales' column from user input (if it's present)
+if 'sales' in user_input_df.columns:
+    user_input_df = user_input_df.drop(columns=['sales'])
 
-# Function to preprocess user input data
-def preprocess_user_input(user_input_df, preprocessor):
-    # Apply the same preprocessing transformations as the original data
-    user_preprocessed_data = preprocessor.transform(user_input_df)
-    return user_preprocessed_data
+# Remove the 'sales' column from all_feature_names
+if 'sales' in all_feature_names:
+    all_feature_names.remove('sales')
 
-# Preprocess the user input data using the same preprocessing as the original data
-user_preprocessed_data = preprocess_user_input(user_input_df, preprocessor)
+# Apply the same preprocessing transformations to user input data
+user_input_preprocessed = preprocessing_transformers.transform(user_input_df)
 
-# Make predictions using the pre-trained model
+# Make predictions using the loaded model
 if st.button('Predict'):
     try:
         # Predict sales using the loaded model
-        predicted_sales = model.predict(user_preprocessed_data)
-        
+        predicted_sales = model.predict(user_input_preprocessed)
+
         # Display the predicted sales
         st.subheader('Predicted Sales')
         st.write(f'The predicted sales value is: {predicted_sales[0]}')
